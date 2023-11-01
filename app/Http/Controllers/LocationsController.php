@@ -100,4 +100,77 @@ class LocationsController extends Controller
 
         return response()->json($firstMatch);
     }
+
+    public function findNearbyCities(Location $location)
+    {
+        $radiusKm = request('radius');
+        $cityId = request('city');
+
+        // Fetch the list of cities from the API or your database.
+        $cities = $location->get('cities');
+
+        $foundCity = array_filter($cities, function ($item) use ($cityId) {
+            return $item->id == $cityId;
+        });
+
+        $firstMatch = reset($foundCity);
+
+        // Get the latitude and longitude from the request or other source.
+        $targetLatitude = $firstMatch->latitude;
+        $targetLongitude = $firstMatch->longitude;
+
+        // Create an empty array to store nearby cities.
+        $nearbyCities = [];
+
+        foreach ($cities as $city) {
+            // Calculate the distance using the Haversine formula.
+            $distance = $this->calculateHaversineDistance(
+                $targetLatitude,
+                $targetLongitude,
+                $city->latitude,
+                $city->longitude
+            );
+
+            // Check if the city is within the desired radius.
+            if ($distance <= $radiusKm) {
+                $city->distance = $distance;
+                $nearbyCities[] = $city;
+            }
+        }
+
+        usort($nearbyCities, function ($a, $b) {
+            return $a->distance - $b->distance;
+        });
+        
+
+        return response()->json([
+            'total' => count($nearbyCities),
+            'nearby_cities' => $nearbyCities
+        ]);
+    }
+
+    private function calculateHaversineDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $lat1 = deg2rad($lat1);
+        $lon1 = deg2rad($lon1);
+        $lat2 = deg2rad($lat2);
+        $lon2 = deg2rad($lon2);
+    
+        // Radius of the Earth in kilometers
+        $earthRadius = 6371;
+    
+        // Haversine formula
+        $dLat = $lat2 - $lat1;
+        $dLon = $lon2 - $lon1;
+    
+        $a = sin($dLat / 2) * sin($dLat / 2) + cos($lat1) * cos($lat2) * sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    
+        // Calculate the distance
+        $distance = $earthRadius * $c;
+    
+
+        return $distance;
+    }
+
 }

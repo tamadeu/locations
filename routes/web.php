@@ -29,3 +29,5 @@ Route::get('/cities/{city}', [LocationsController::class, "city"])->name('city')
 Route::get('/states', [LocationsController::class, "states"])->name('states');
 
 Route::get('/states/{country}/{state}', [LocationsController::class, "state"])->name('state');
+
+Route::get('/findNearbyCities', [LocationsController::class, "findNearbyCities"])->name('findNearbyCities');
